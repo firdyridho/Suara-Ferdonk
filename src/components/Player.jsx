@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Play, Pause, Volume2, VolumeX, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Loader2, AlertCircle, ExternalLink, Copy, Check } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { station } from '../config/station';
 import ConnectionStatus from './ConnectionStatus';
@@ -15,6 +15,7 @@ export default function Player({ networkStatus }) {
   const [errorMsg, setErrorMsg] = useState('');
   const [volume, setVolume] = useState(0.8);
   const [isMuted, setIsMuted] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const bg = theme === 'dark' ? 'bg-[#18181B]' : 'bg-white';
   const border = theme === 'dark' ? 'border-[#27272A]' : 'border-[#E4E4E7]';
@@ -108,6 +109,26 @@ export default function Player({ networkStatus }) {
     if (audioRef.current) audioRef.current.volume = val;
   };
 
+  const copyStreamUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(station.streamUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback for older browsers
+      const textarea = document.createElement('textarea');
+      textarea.value = station.streamUrl;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   return (
     <div className={`w-full max-w-xl mx-auto rounded-xl border overflow-hidden ${bg} ${border}`}>
       {/* Header */}
@@ -119,19 +140,35 @@ export default function Player({ networkStatus }) {
             <p className={`text-sm font-semibold ${text}`}>{station.name}</p>
           </div>
         </div>
-        <a
-          href={station.tuneinUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-            theme === 'dark'
-              ? 'bg-[#27272A] text-[#E4E4E7] hover:bg-[#DD7C2B]/20 hover:text-[#DD7C2B]'
-              : 'bg-[#F4F4F5] text-[#18181B] hover:bg-[#DD7C2B]/10 hover:text-[#DD7C2B]'
-          }`}
-        >
-          TuneIn
-          <ExternalLink size={10} className="opacity-40" />
-        </a>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={copyStreamUrl}
+            title="Copy stream URL"
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              copied
+                ? 'bg-emerald-500/10 text-emerald-500'
+                : theme === 'dark'
+                  ? 'bg-[#27272A] text-[#A1A1AA] hover:text-[#DD7C2B]'
+                  : 'bg-[#F4F4F5] text-[#71717A] hover:text-[#DD7C2B]'
+            }`}
+          >
+            {copied ? <Check size={12} /> : <Copy size={12} />}
+            {copied ? 'Copied' : 'Copy'}
+          </button>
+          <a
+            href={station.tuneinUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              theme === 'dark'
+                ? 'bg-[#27272A] text-[#E4E4E7] hover:bg-[#DD7C2B]/20 hover:text-[#DD7C2B]'
+                : 'bg-[#F4F4F5] text-[#18181B] hover:bg-[#DD7C2B]/10 hover:text-[#DD7C2B]'
+            }`}
+          >
+            TuneIn
+            <ExternalLink size={10} className="opacity-40" />
+          </a>
+        </div>
       </div>
 
       {/* Controls */}
@@ -159,15 +196,23 @@ export default function Player({ networkStatus }) {
             {hasError ? (
               <div>
                 <p className="text-sm font-medium text-red-500">{errorMsg}</p>
-                <a
-                  href={station.tuneinUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[11px] font-medium text-[#DD7C2B] hover:underline mt-1"
-                >
-                  Dengarkan via TuneIn
-                  <ExternalLink size={9} />
-                </a>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <button
+                    onClick={copyStreamUrl}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-[#DD7C2B] hover:underline"
+                  >
+                    {copied ? <Check size={9} /> : <Copy size={9} />}
+                    {copied ? 'URL copied!' : 'Copy URL → paste di TuneIn'}
+                  </button>
+                  <a
+                    href={station.tuneinUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-[#DD7C2B] hover:underline"
+                  >
+                    Buka TuneIn <ExternalLink size={9} />
+                  </a>
+                </div>
               </div>
             ) : isPlaying ? (
               <p className={`text-sm font-medium ${text}`}>Sedang diputar</p>
