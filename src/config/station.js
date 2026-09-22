@@ -3,15 +3,7 @@ export const station = {
   tagline: "Radio Online Indonesia",
   description: "Suara Ferdonk adalah stasiun radio online yang menyajikan hiburan audio berkualitas untuk pendengar di seluruh Indonesia. Nikmati musik, obrolan, dan konten menarik lainnya kapan saja dan di mana saja.",
 
-  caster: {
-    publicToken: "3c650aa9-dfab-4d2d-94c9-5a5bbf32b56c",
-    color: "DD7C2B",
-    theme: "light",
-  },
-
-  // Isi dengan direct stream URL jika sudah upgrade Caster FM Pro
-  // Format: https://shaincast.caster.fm:XXXXX/listen.mp3
-  directStreamUrl: null,
+  streamUrl: "https://uk15freenew.listen2myradio.com/live.mp3?typeportmount=s1_19677_stream_125882151",
 
   // TuneIn station page URL (isi jika sudah terdaftar di TuneIn)
   tuneinUrl: "https://tunein.com/radio/Suara-Ferdonk/",
