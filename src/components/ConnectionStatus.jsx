@@ -10,7 +10,9 @@ export default function ConnectionStatus({ networkStatus }) {
     good: { color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/20', label: 'Excellent' },
     fair: { color: 'text-yellow-400', bg: 'bg-yellow-400/10', border: 'border-yellow-400/20', label: 'Good' },
     poor: { color: 'text-red-400', bg: 'bg-red-400/10', border: 'border-red-400/20', label: 'Weak' },
-    unknown: { color: 'text-gray-400', bg: 'bg-gray-400/10', border: 'border-gray-400/20', label: 'Unknown' },
+    offline: { color: 'text-red-400', bg: 'bg-red-400/10', border: 'border-red-400/20', label: 'Offline' },
+    checking: { color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/20', label: 'Checking...' },
+    unknown: { color: 'text-gray-400', bg: 'bg-gray-400/10', border: 'border-gray-400/20', label: '' },
   };
 
   const q = qualityConfig[quality] || qualityConfig.unknown;
@@ -30,7 +32,7 @@ export default function ConnectionStatus({ networkStatus }) {
           : 'bg-red-500/10 text-red-400 border-red-500/20'
       }`}>
         {online ? <Wifi size={12} /> : <WifiOff size={12} />}
-        <span>{online ? 'Connected' : 'Disconnected'}</span>
+        <span>{online ? 'Online' : 'Offline'}</span>
       </div>
 
       {/* Latency */}
@@ -39,7 +41,6 @@ export default function ConnectionStatus({ networkStatus }) {
           {quality === 'good' && <SignalHigh size={12} />}
           {quality === 'fair' && <SignalMedium size={12} />}
           {quality === 'poor' && <SignalLow size={12} />}
-          {quality === 'unknown' && <Signal size={12} />}
           <span>{latency}ms</span>
         </div>
       )}
@@ -51,12 +52,12 @@ export default function ConnectionStatus({ networkStatus }) {
             ? 'bg-dark-card border-dark-border'
             : 'bg-light-bg border-light-border'
         }`}>
-          <span className={`uppercase tracking-wider ${q.color}`}>{connectionType}</span>
+          <span className="uppercase tracking-wider text-emerald-400">{connectionType}</span>
         </div>
       )}
 
       {/* Quality Label */}
-      {quality !== 'unknown' && (
+      {q.label && (
         <span className={`hidden sm:inline ${q.color}`}>{q.label}</span>
       )}
     </motion.div>
