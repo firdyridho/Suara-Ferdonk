@@ -23,9 +23,8 @@ export default function Player({ networkStatus }) {
       audioRef.current.removeAttribute('src');
     }
     const audio = new Audio();
-    audio.crossOrigin = 'anonymous';
     audio.preload = 'none';
-    audio.src = station.streamUrl + '?nocache=' + Date.now();
+    audio.src = station.streamUrl;
     audio.volume = isMuted ? 0 : volume;
 
     audio.addEventListener('playing', () => {
