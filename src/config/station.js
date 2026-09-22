@@ -5,14 +5,7 @@ export const station = {
 
   streamUrl: "https://uk15freenew.listen2myradio.com/live.mp3?typeportmount=s1_19677_stream_125882151",
 
-  // Fallback: Caster FM embed (lebih reliable di mobile data)
-  caster: {
-    publicToken: "3c650aa9-dfab-4d2d-94c9-5a5bbf32b56c",
-    color: "DD7C2B",
-    theme: "light",
-  },
-
-  // Ganti dengan ID TuneIn setelah daftar di https://tunein.com/for-broadcasters/
+  // TuneIn — daftar di https://tunein.com/for-broadcasters/ buat fallback mobile data
   tuneinUrl: "https://tunein.com/radio/Suara-Ferdonk/",
 
   social: {

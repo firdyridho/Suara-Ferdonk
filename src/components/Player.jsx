@@ -1,18 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Play, Pause, Volume2, VolumeX, Loader2, AlertCircle, Radio } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { station } from '../config/station';
 import ConnectionStatus from './ConnectionStatus';
-import TuneInButton from './TuneInButton';
 
 export default function Player({ networkStatus }) {
   const { theme } = useTheme();
   const audioRef = useRef(null);
-  const casterRef = useRef(null);
-  const casterScriptRef = useRef(false);
   const mountedRef = useRef(true);
 
-  const [mode, setMode] = useState('direct'); // 'direct' or 'embed'
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -26,8 +22,7 @@ export default function Player({ networkStatus }) {
   const muted = theme === 'dark' ? 'text-[#71717A]' : 'text-[#A1A1AA]';
   const controlBg = theme === 'dark' ? 'bg-[#27272A]' : 'bg-[#F4F4F5]';
 
-  // Cleanup audio
-  const cleanupAudio = useCallback(() => {
+  const cleanup = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.onplaying = null;
       audioRef.current.onpause = null;
@@ -41,59 +36,13 @@ export default function Player({ networkStatus }) {
     }
   }, []);
 
-  // Switch to Caster FM embed fallback
-  const switchToEmbed = useCallback(() => {
-    if (mode === 'embed') return;
-    cleanupAudio();
-    setIsPlaying(false);
-    setIsLoading(false);
-    setHasError(false);
-    setMode('embed');
-
-    // Load Caster FM embed script after mount
-    setTimeout(() => {
-      if (!mountedRef.current || !casterRef.current) return;
-      casterRef.current.innerHTML = '';
-
-      const embedDiv = document.createElement('div');
-      embedDiv.className = 'cstrEmbed';
-      embedDiv.setAttribute('data-type', 'newStreamPlayer');
-      embedDiv.setAttribute('data-publicToken', station.caster.publicToken);
-      embedDiv.setAttribute('data-theme', station.caster.theme);
-      embedDiv.setAttribute('data-color', station.caster.color);
-      embedDiv.setAttribute('data-channelId', '');
-      embedDiv.setAttribute('data-rendered', 'false');
-
-      ['Shoutcast Hosting', 'Stream Hosting', 'Radio Server Hosting'].forEach((text) => {
-        const a = document.createElement('a');
-        a.href = 'https://www.caster.fm';
-        a.textContent = text;
-        embedDiv.appendChild(a);
-      });
-
-      casterRef.current.appendChild(embedDiv);
-
-      if (!casterScriptRef.current) {
-        const script = document.createElement('script');
-        script.src = '//cdn.cloud.caster.fm//widgets/embed.js';
-        script.async = true;
-        document.body.appendChild(script);
-        casterScriptRef.current = true;
-      }
-    }, 100);
-  }, [mode, cleanupAudio]);
-
   useEffect(() => {
     mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-      cleanupAudio();
-    };
-  }, [cleanupAudio]);
+    return () => { mountedRef.current = false; cleanup(); };
+  }, [cleanup]);
 
-  // Direct stream
-  const startDirectStream = useCallback(async () => {
-    cleanupAudio();
+  const startStream = useCallback(async () => {
+    cleanup();
     if (!mountedRef.current) return;
     setIsLoading(true);
     setHasError(false);
@@ -118,9 +67,7 @@ export default function Player({ networkStatus }) {
       setIsPlaying(false);
       setIsLoading(false);
       setHasError(true);
-      setErrorMsg('Stream tidak tersedia — switch ke player online');
-      // Auto-fallback to Caster FM embed
-      setTimeout(() => switchToEmbed(), 500);
+      setErrorMsg('Stream tidak tersedia dari jaringan ini');
     };
 
     audioRef.current = audio;
@@ -134,24 +81,18 @@ export default function Player({ networkStatus }) {
       setIsLoading(false);
       setHasError(true);
       if (err.message === 'timeout') {
-        setErrorMsg('Stream lambat — switch ke player online');
-        setTimeout(() => switchToEmbed(), 500);
+        setErrorMsg('Stream lambat dari jaringan ini');
       } else if (err.name === 'NotAllowedError') {
         setErrorMsg('Klik play untuk memulai');
       } else {
-        setErrorMsg('Gagal terhubung — switch ke player online');
-        setTimeout(() => switchToEmbed(), 500);
+        setErrorMsg('Tidak bisa terhubung ke stream');
       }
     }
-  }, [volume, isMuted, cleanupAudio, switchToEmbed]);
+  }, [volume, isMuted, cleanup]);
 
   const togglePlay = () => {
-    if (mode === 'embed') return; // Caster FM embed handles its own play
-    if (isPlaying) {
-      audioRef.current?.pause();
-    } else {
-      startDirectStream();
-    }
+    if (isPlaying) { audioRef.current?.pause(); }
+    else { startStream(); }
   };
 
   const toggleMute = () => {
@@ -178,98 +119,79 @@ export default function Player({ networkStatus }) {
             <p className={`text-sm font-semibold ${text}`}>{station.name}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {mode === 'direct' && (
-            <button
-              onClick={switchToEmbed}
-              className={`text-[10px] font-medium px-2 py-1 rounded transition-colors ${
-                theme === 'dark'
-                  ? 'bg-[#27272A] text-[#A1A1AA] hover:text-[#DD7C2B]'
-                  : 'bg-[#F4F4F5] text-[#71717A] hover:text-[#DD7C2B]'
-              }`}
-            >
-              Player Online
-            </button>
-          )}
-          <TuneInButton />
-        </div>
+        <a
+          href={station.tuneinUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+            theme === 'dark'
+              ? 'bg-[#27272A] text-[#E4E4E7] hover:bg-[#DD7C2B]/20 hover:text-[#DD7C2B]'
+              : 'bg-[#F4F4F5] text-[#18181B] hover:bg-[#DD7C2B]/10 hover:text-[#DD7C2B]'
+          }`}
+        >
+          TuneIn
+          <ExternalLink size={10} className="opacity-40" />
+        </a>
       </div>
 
-      {/* Direct mode */}
-      {mode === 'direct' && (
-        <div className="px-4 py-5">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={togglePlay}
-              disabled={isLoading}
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors shrink-0 ${
-                isPlaying ? 'bg-[#DD7C2B] text-white' : `${controlBg} ${text}`
-              } disabled:opacity-50`}
-            >
-              {isLoading ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : hasError ? (
-                <AlertCircle size={18} className="text-red-500" />
-              ) : isPlaying ? (
-                <Pause size={18} />
-              ) : (
-                <Play size={18} className="ml-0.5" />
-              )}
-            </button>
+      {/* Controls */}
+      <div className="px-4 py-5">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={togglePlay}
+            disabled={isLoading}
+            className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors shrink-0 ${
+              isPlaying ? 'bg-[#DD7C2B] text-white' : `${controlBg} ${text}`
+            } disabled:opacity-50`}
+          >
+            {isLoading ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : hasError ? (
+              <AlertCircle size={18} className="text-red-500" />
+            ) : isPlaying ? (
+              <Pause size={18} />
+            ) : (
+              <Play size={18} className="ml-0.5" />
+            )}
+          </button>
 
-            <div className="flex-1 min-w-0">
-              {hasError ? (
+          <div className="flex-1 min-w-0">
+            {hasError ? (
+              <div>
                 <p className="text-sm font-medium text-red-500">{errorMsg}</p>
-              ) : isPlaying ? (
-                <p className={`text-sm font-medium ${text}`}>Sedang diputar</p>
-              ) : isLoading ? (
-                <p className={`text-sm ${muted}`}>Menghubungkan...</p>
-              ) : (
-                <p className={`text-sm ${muted}`}>Tekan play untuk mendengarkan</p>
-              )}
-              <p className={`text-[11px] mt-0.5 ${muted}`}>Direct Stream &middot; MP3 &middot; 128kbps</p>
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <button onClick={toggleMute} className={`p-1.5 rounded-md ${muted} transition-colors`}>
-                {isMuted || volume === 0 ? <VolumeX size={15} /> : <Volume2 size={15} />}
-              </button>
-              <input
-                type="range" min="0" max="1" step="0.01"
-                value={isMuted ? 0 : volume}
-                onChange={handleVolume}
-                className="w-16 h-1 rounded-full appearance-none cursor-pointer bg-[#DD7C2B]/20 accent-[#DD7C2B]"
-              />
-            </div>
+                <a
+                  href={station.tuneinUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-[#DD7C2B] hover:underline mt-1"
+                >
+                  Dengarkan via TuneIn
+                  <ExternalLink size={9} />
+                </a>
+              </div>
+            ) : isPlaying ? (
+              <p className={`text-sm font-medium ${text}`}>Sedang diputar</p>
+            ) : isLoading ? (
+              <p className={`text-sm ${muted}`}>Menghubungkan...</p>
+            ) : (
+              <p className={`text-sm ${muted}`}>Tekan play untuk mendengarkan</p>
+            )}
+            {!hasError && <p className={`text-[11px] mt-0.5 ${muted}`}>MP3 &middot; 128kbps</p>}
           </div>
-        </div>
-      )}
 
-      {/* Embed mode */}
-      {mode === 'embed' && (
-        <div className="relative">
-          <div
-            ref={casterRef}
-            className={`min-h-[80px] ${theme === 'dark' ? 'bg-[#0C0C0C]' : 'bg-[#F4F4F5]'}`}
-          />
-          <div className={`px-4 py-2 flex items-center justify-between border-t ${border}`}>
-            <div className="flex items-center gap-2">
-              <Radio size={12} className="text-[#DD7C2B]" />
-              <span className={`text-[11px] ${muted}`}>Powered by Caster FM</span>
-            </div>
-            <button
-              onClick={() => { setMode('direct'); setHasError(false); setErrorMsg(''); }}
-              className={`text-[11px] font-medium px-2 py-0.5 rounded transition-colors ${
-                theme === 'dark'
-                  ? 'text-[#A1A1AA] hover:text-[#DD7C2B]'
-                  : 'text-[#71717A] hover:text-[#DD7C2B]'
-              }`}
-            >
-              Switch to Direct
+          <div className="flex items-center gap-1.5">
+            <button onClick={toggleMute} className={`p-1.5 rounded-md ${muted} transition-colors`}>
+              {isMuted || volume === 0 ? <VolumeX size={15} /> : <Volume2 size={15} />}
             </button>
+            <input
+              type="range" min="0" max="1" step="0.01"
+              value={isMuted ? 0 : volume}
+              onChange={handleVolume}
+              className="w-16 h-1 rounded-full appearance-none cursor-pointer bg-[#DD7C2B]/20 accent-[#DD7C2B]"
+            />
           </div>
         </div>
-      )}
+      </div>
 
       {/* Status */}
       <div className={`px-4 py-2.5 border-t ${border}`}>
