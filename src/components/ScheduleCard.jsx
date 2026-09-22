@@ -1,35 +1,22 @@
-import { motion } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 
 export default function ScheduleCard({ program }) {
   const { theme } = useTheme();
+  const bg = theme === 'dark' ? 'bg-[#27272A]/50' : 'bg-[#F4F4F5]';
+  const text = theme === 'dark' ? 'text-[#E4E4E7]' : 'text-[#18181B]';
+  const muted = theme === 'dark' ? 'text-[#71717A]' : 'text-[#A1A1AA]';
 
   return (
-    <motion.div
-      whileHover={{ scale: 1.02, y: -2 }}
-      className={`p-4 rounded-xl transition-all ${
-        theme === 'dark'
-          ? 'bg-dark-card border border-dark-border hover:border-primary/30'
-          : 'bg-white border border-light-border hover:border-primary/30 shadow-sm'
-      }`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className={`text-sm font-bold truncate ${theme === 'dark' ? 'text-white' : 'text-dark-text'}`}>
-            {program.name}
-          </p>
-          <p className={`text-xs mt-1 ${theme === 'dark' ? 'text-dark-muted' : 'text-light-muted'}`}>
-            Hosted by <span className="text-primary font-medium">{program.dj}</span>
-          </p>
-        </div>
-        <span className={`text-xs font-mono px-2.5 py-1 rounded-lg whitespace-nowrap ${
-          theme === 'dark'
-            ? 'bg-primary/10 text-primary border border-primary/20'
-            : 'bg-primary/10 text-primary border border-primary/20'
-        }`}>
+    <div className={`px-3 py-2.5 rounded-lg ${bg}`}>
+      <div className="flex items-center justify-between gap-2">
+        <p className={`text-sm font-medium truncate ${text}`}>{program.name}</p>
+        <span className={`text-[11px] font-mono whitespace-nowrap px-2 py-0.5 rounded bg-[#DD7C2B]/10 text-[#DD7C2B]`}>
           {program.time}
         </span>
       </div>
-    </motion.div>
+      <p className={`text-[11px] mt-1 ${muted}`}>
+        {program.dj}
+      </p>
+    </div>
   );
 }

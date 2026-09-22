@@ -1,27 +1,24 @@
-import { ExternalLink, Radio } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
+import { ExternalLink, Radio } from 'lucide-react';
 import { station } from '../config/station';
 
 export default function TuneInButton() {
   const { theme } = useTheme();
 
   return (
-    <motion.a
+    <a
       href={station.tuneinUrl}
       target="_blank"
       rel="noopener noreferrer"
-      whileHover={{ scale: 1.03 }}
-      whileTap={{ scale: 0.97 }}
-      className={`inline-flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
         theme === 'dark'
-          ? 'bg-dark-card text-dark-text border border-dark-border hover:border-primary/40 hover:bg-primary/10'
-          : 'bg-white text-dark-text border border-light-border hover:border-primary/40 hover:bg-primary/5 shadow-sm'
+          ? 'bg-[#27272A] text-[#E4E4E7] hover:bg-[#DD7C2B]/20 hover:text-[#DD7C2B]'
+          : 'bg-[#F4F4F5] text-[#18181B] hover:bg-[#DD7C2B]/10 hover:text-[#DD7C2B]'
       }`}
     >
-      <Radio size={16} className="text-primary" />
-      <span>Listen on TuneIn</span>
-      <ExternalLink size={14} className="opacity-50" />
-    </motion.a>
+      <Radio size={13} />
+      TuneIn
+      <ExternalLink size={10} className="opacity-40" />
+    </a>
   );
 }

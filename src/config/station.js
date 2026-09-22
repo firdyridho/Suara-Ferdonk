@@ -5,7 +5,7 @@ export const station = {
 
   streamUrl: "https://uk15freenew.listen2myradio.com/live.mp3?typeportmount=s1_19677_stream_125882151",
 
-  // TuneIn station page URL (isi jika sudah terdaftar di TuneIn)
+  // Ganti dengan ID TuneIn setelah daftar di https://tunein.com/for-broadcasters/
   tuneinUrl: "https://tunein.com/radio/Suara-Ferdonk/",
 
   social: {

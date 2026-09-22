@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import ThemeToggle from './ThemeToggle';
 import { station } from '../config/station';
@@ -18,145 +16,91 @@ export default function Navbar() {
   const location = useLocation();
   const { theme } = useTheme();
 
+  const bg = theme === 'dark'
+    ? 'bg-[#0C0C0C]/90 border-b border-[#27272A]'
+    : 'bg-white/90 border-b border-[#E4E4E7]';
+
+  const text = theme === 'dark' ? 'text-[#E4E4E7]' : 'text-[#18181B]';
+  const muted = theme === 'dark' ? 'text-[#A1A1AA]' : 'text-[#71717A]';
+  const hoverBg = theme === 'dark' ? 'hover:bg-[#27272A]' : 'hover:bg-[#F4F4F5]';
+
   return (
-    <motion.nav
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      transition={{ type: 'spring', stiffness: 100, damping: 20 }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        theme === 'dark'
-          ? 'glass-dark shadow-lg shadow-black/20'
-          : 'glass-light shadow-lg shadow-black/5'
-      }`}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-18">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="relative w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0">
-              <img
-                src="/logo.png"
-                alt="Suara Ferdonk"
-                className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300"
-              />
-            </div>
-            <div className="hidden sm:block">
-              <span className={`text-lg font-bold tracking-tight ${
-                theme === 'dark' ? 'text-white' : 'text-dark-text'
-              }`}>
-                {station.name}
-              </span>
-            </div>
-          </Link>
+    <nav className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-md ${bg}`}>
+      <div className="max-w-5xl mx-auto px-5 h-16 flex items-center justify-between">
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-3">
+          <img src="/logo.png" alt="Suara Ferdonk" className="w-8 h-8 object-contain" />
+          <span className={`text-base font-semibold tracking-tight ${text}`}>
+            {station.name}
+          </span>
+        </Link>
 
-          {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => {
-              const isActive = location.pathname === link.path;
-              return (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  className={`relative px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                    isActive
-                      ? 'text-primary'
-                      : theme === 'dark'
-                        ? 'text-dark-muted hover:text-white hover:bg-white/5'
-                        : 'text-light-muted hover:text-dark-text hover:bg-black/5'
-                  }`}
-                >
-                  {link.label}
-                  {isActive && (
-                    <motion.div
-                      layoutId="nav-indicator"
-                      className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary"
-                      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                    />
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* Right side */}
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-
-            {/* Live indicator */}
-            <div className={`hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
-              theme === 'dark'
-                ? 'bg-primary/10 text-primary border border-primary/20'
-                : 'bg-primary/10 text-primary border border-primary/20'
-            }`}>
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-              </span>
-              LIVE
-            </div>
-
-            {/* Mobile menu button */}
-            <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className={`md:hidden p-2 rounded-xl transition-colors ${
-                theme === 'dark'
-                  ? 'text-dark-muted hover:text-white hover:bg-white/5'
-                  : 'text-light-muted hover:text-dark-text hover:bg-black/5'
+        {/* Desktop */}
+        <div className="hidden md:flex items-center gap-1">
+          {navLinks.map((link) => (
+            <Link
+              key={link.path}
+              to={link.path}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                location.pathname === link.path
+                  ? 'text-[#DD7C2B] bg-[#DD7C2B]/10'
+                  : `${muted} ${hoverBg}`
               }`}
             >
-              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
+              {link.label}
+            </Link>
+          ))}
+          <div className="ml-2 flex items-center gap-2">
+            <ThemeToggle />
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider bg-[#DD7C2B] text-white">
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+              Live
+            </span>
           </div>
         </div>
+
+        {/* Mobile toggle */}
+        <button
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className={`md:hidden p-2 rounded-lg ${hoverBg} ${muted}`}
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+            {mobileOpen ? (
+              <path d="M5 5l10 10M15 5L5 15" />
+            ) : (
+              <path d="M3 6h14M3 10h14M3 14h14" />
+            )}
+          </svg>
+        </button>
       </div>
 
       {/* Mobile menu */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
-            className={`md:hidden border-t overflow-hidden ${
-              theme === 'dark'
-                ? 'bg-dark-surface/95 glass-dark border-dark-border'
-                : 'bg-white/95 glass-light border-light-border'
-            }`}
-          >
-            <div className="px-4 py-3 space-y-1">
-              {navLinks.map((link) => {
-                const isActive = location.pathname === link.path;
-                return (
-                  <Link
-                    key={link.path}
-                    to={link.path}
-                    onClick={() => setMobileOpen(false)}
-                    className={`block px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                      isActive
-                        ? 'bg-primary/10 text-primary'
-                        : theme === 'dark'
-                          ? 'text-dark-muted hover:text-white hover:bg-white/5'
-                          : 'text-light-muted hover:text-dark-text hover:bg-black/5'
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                );
-              })}
-              <div className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium ${
-                theme === 'dark' ? 'text-dark-muted' : 'text-light-muted'
-              }`}>
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                </span>
-                LIVE
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.nav>
+      {mobileOpen && (
+        <div className={`md:hidden border-t px-5 py-3 ${
+          theme === 'dark' ? 'bg-[#0C0C0C] border-[#27272A]' : 'bg-white border-[#E4E4E7]'
+        }`}>
+          {navLinks.map((link) => (
+            <Link
+              key={link.path}
+              to={link.path}
+              onClick={() => setMobileOpen(false)}
+              className={`block py-2.5 text-sm font-medium rounded-lg px-3 mb-1 ${
+                location.pathname === link.path
+                  ? 'text-[#DD7C2B] bg-[#DD7C2B]/10'
+                  : `${muted} ${hoverBg}`
+              }`}
+            >
+              {link.label}
+            </Link>
+          ))}
+          <div className="flex items-center gap-2 px-3 pt-2">
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider bg-[#DD7C2B] text-white">
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+              Live
+            </span>
+          </div>
+        </div>
+      )}
+    </nav>
   );
 }
