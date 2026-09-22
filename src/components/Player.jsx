@@ -11,8 +11,11 @@ export default function Player({ networkStatus }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const [volume, setVolume] = useState(0.8);
   const [isMuted, setIsMuted] = useState(false);
+  const mountedRef = useRef(true);
+  const timeoutRef = useRef(null);
 
   const bg = theme === 'dark' ? 'bg-[#18181B]' : 'bg-white';
   const border = theme === 'dark' ? 'border-[#27272A]' : 'border-[#E4E4E7]';
@@ -20,50 +23,121 @@ export default function Player({ networkStatus }) {
   const muted = theme === 'dark' ? 'text-[#71717A]' : 'text-[#A1A1AA]';
   const controlBg = theme === 'dark' ? 'bg-[#27272A]' : 'bg-[#F4F4F5]';
 
-  const createAudio = useCallback(() => {
+  const cleanup = useCallback(() => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     if (audioRef.current) {
+      audioRef.current.onplaying = null;
+      audioRef.current.onpause = null;
+      audioRef.current.onwaiting = null;
+      audioRef.current.onerror = null;
+      audioRef.current.ontimeupdate = null;
       audioRef.current.pause();
-      audioRef.current.removeAttribute('src');
+      audioRef.current.src = '';
+      audioRef.current.load();
+      audioRef.current = null;
     }
-    const audio = new Audio();
-    audio.preload = 'none';
-    audio.src = station.streamUrl;
-    audio.volume = isMuted ? 0 : volume;
-
-    audio.addEventListener('playing', () => { setIsPlaying(true); setIsLoading(false); setHasError(false); });
-    audio.addEventListener('pause', () => setIsPlaying(false));
-    audio.addEventListener('waiting', () => setIsLoading(true));
-    audio.addEventListener('error', () => { setIsPlaying(false); setIsLoading(false); setHasError(true); });
-
-    audioRef.current = audio;
-    return audio;
-  }, [volume, isMuted]);
-
-  useEffect(() => {
-    return () => { audioRef.current?.pause(); };
   }, []);
 
-  const togglePlay = async () => {
-    if (hasError) {
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      cleanup();
+    };
+  }, [cleanup]);
+
+  const startStream = useCallback(async () => {
+    cleanup();
+    if (!mountedRef.current) return;
+    setIsLoading(true);
+    setHasError(false);
+    setErrorMsg('');
+
+    const audio = new Audio();
+    audio.preload = 'none';
+    audio.volume = isMuted ? 0 : volume;
+
+    // Use the stream URL directly — audio elements don't need CORS to play
+    audio.src = station.streamUrl;
+
+    audio.onplaying = () => {
+      if (!mountedRef.current) return;
+      setIsPlaying(true);
+      setIsLoading(false);
       setHasError(false);
-      const audio = createAudio();
-      try { setIsLoading(true); await audio.play(); } catch { setHasError(true); setIsLoading(false); }
-      return;
+    };
+
+    audio.onpause = () => {
+      if (!mountedRef.current) return;
+      setIsPlaying(false);
+    };
+
+    audio.onwaiting = () => {
+      if (!mountedRef.current) return;
+      setIsLoading(true);
+    };
+
+    audio.oncanplay = () => {
+      if (!mountedRef.current) return;
+      setIsLoading(false);
+    };
+
+    audio.onerror = () => {
+      if (!mountedRef.current) return;
+      setIsPlaying(false);
+      setIsLoading(false);
+      setHasError(true);
+      const code = audio.error?.code;
+      if (code === 3) setErrorMsg('Stream tidak tersedia');
+      else if (code === 4) setErrorMsg('Format tidak didukung');
+      else setErrorMsg('Gagal terhubung ke stream');
+    };
+
+    audioRef.current = audio;
+
+    try {
+      // Set a timeout — if play() doesn't resolve in 10s, something is wrong
+      const playPromise = audio.play();
+      const timeout = new Promise((_, reject) => {
+        timeoutRef.current = setTimeout(() => reject(new Error('timeout')), 10000);
+      });
+
+      await Promise.race([playPromise, timeout]);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    } catch (err) {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (!mountedRef.current) return;
+
+      setIsLoading(false);
+      setHasError(true);
+
+      if (err.message === 'timeout') {
+        setErrorMsg('Stream lambat — coba lagi');
+      } else if (err.name === 'NotAllowedError') {
+        setErrorMsg('Klik play untuk memulai');
+      } else {
+        setErrorMsg('Gagal terhubung ke stream');
+      }
     }
+  }, [volume, isMuted, cleanup]);
+
+  const togglePlay = () => {
     if (isPlaying) {
       audioRef.current?.pause();
-    } else if (audioRef.current) {
-      try { setIsLoading(true); await audioRef.current.play(); } catch { setHasError(true); setIsLoading(false); }
     } else {
-      const audio = createAudio();
-      try { setIsLoading(true); await audio.play(); } catch { setHasError(true); setIsLoading(false); }
+      startStream();
     }
   };
 
   const toggleMute = () => {
     if (!audioRef.current) return;
-    if (isMuted) { audioRef.current.volume = volume; setIsMuted(false); }
-    else { audioRef.current.volume = 0; setIsMuted(true); }
+    if (isMuted) {
+      audioRef.current.volume = volume;
+      setIsMuted(false);
+    } else {
+      audioRef.current.volume = 0;
+      setIsMuted(true);
+    }
   };
 
   const handleVolume = (e) => {
@@ -75,7 +149,6 @@ export default function Player({ networkStatus }) {
 
   return (
     <div className={`w-full max-w-xl mx-auto rounded-xl border overflow-hidden ${bg} ${border}`}>
-      {/* Header */}
       <div className={`flex items-center justify-between px-4 py-3 border-b ${border}`}>
         <div className="flex items-center gap-3">
           <img src="/logo.png" alt="" className="w-6 h-6 object-contain" />
@@ -87,20 +160,18 @@ export default function Player({ networkStatus }) {
         <TuneInButton />
       </div>
 
-      {/* Controls */}
       <div className="px-4 py-5">
         <div className="flex items-center gap-4">
-          {/* Play Button */}
           <button
             onClick={togglePlay}
-            disabled={isLoading && !hasError}
-            className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
+            disabled={isLoading}
+            className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors shrink-0 ${
               isPlaying
                 ? 'bg-[#DD7C2B] text-white'
                 : `${controlBg} ${text}`
             } disabled:opacity-50`}
           >
-            {isLoading && !hasError ? (
+            {isLoading ? (
               <Loader2 size={18} className="animate-spin" />
             ) : hasError ? (
               <AlertCircle size={18} className="text-red-500" />
@@ -111,23 +182,21 @@ export default function Player({ networkStatus }) {
             )}
           </button>
 
-          {/* Status */}
           <div className="flex-1 min-w-0">
             {hasError ? (
-              <p className="text-sm font-medium text-red-500">Koneksi gagal</p>
+              <p className="text-sm font-medium text-red-500">{errorMsg || 'Gagal terhubung'}</p>
             ) : isPlaying ? (
               <p className={`text-sm font-medium ${text}`}>Sedang diputar</p>
             ) : isLoading ? (
-              <p className={`text-sm ${muted}`}>Memuat...</p>
+              <p className={`text-sm ${muted}`}>Menghubungkan...</p>
             ) : (
               <p className={`text-sm ${muted}`}>Tekan play untuk mendengarkan</p>
             )}
             <p className={`text-[11px] mt-0.5 ${muted}`}>MP3 &middot; 128kbps</p>
           </div>
 
-          {/* Volume */}
           <div className="flex items-center gap-1.5">
-            <button onClick={toggleMute} className={`p-1.5 rounded-md ${muted} hover:${text} transition-colors`}>
+            <button onClick={toggleMute} className={`p-1.5 rounded-md ${muted} transition-colors`}>
               {isMuted || volume === 0 ? <VolumeX size={15} /> : <Volume2 size={15} />}
             </button>
             <input
@@ -143,7 +212,6 @@ export default function Player({ networkStatus }) {
         </div>
       </div>
 
-      {/* Status bar */}
       <div className={`px-4 py-2.5 border-t ${border}`}>
         <ConnectionStatus networkStatus={networkStatus} />
       </div>
